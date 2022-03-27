@@ -10,12 +10,14 @@ using Vector3 = UnityEngine.Vector3;
 
 public class Move : MonoBehaviour
 {
-    BoxCollider2D collider;
-    float movementSpeed;
-    private float colliderMargin = 0.05f;
-    private float groundCheckDistance = 0.1f;
-    [SerializeField] LayerMask collisionMask;
-    [SerializeField] private float gravity = 1;
+    BoxCollider2D collider; // spelarens 2dcollider
+    float acceleration; // spelarens acceleration
+    private float colliderMargin = 0.05f; // hur långt det måste vara mellan spelaren och andra colliders
+    private float groundCheckDistance = 0.1f; // hur långt ner man kollar ifall man är grounded
+    [SerializeField] LayerMask collisionMask; // vilket layer spelaren ska kollidera med
+    [SerializeField] private float gravity = 0.05f;
+    private Vector2 velocity; // hastighet
+    private float maxSpeed = 0.08f; // maxspeed
 
     void Awake()
     {
@@ -24,35 +26,73 @@ public class Move : MonoBehaviour
 
     void Start()
     {
-        movementSpeed = 3.0f; // sätter till önskad movementhastighet
+        acceleration = 1.0f; // sätter till önskad movementhastighet
     }
 
     void Update()
     {
-        float horizontal = Input.GetAxisRaw("Horizontal"); // hämtar horisontell input (A, D)
-        Vector2 direction = new Vector2(horizontal, 0.0f); // Vector för vilken riktning spelaren ska gå åt
-        float distance = movementSpeed * Time.deltaTime;
-        Vector2 movement = (Vector3) direction * distance;
         Vector2 downMovement = (Vector3) Vector2.down * gravity * Time.deltaTime;
 
-        bool grounded = Physics2D.BoxCast(
-            transform.position,
-            collider.size,
-            0.0f,
-            Vector2.down,
-            groundCheckDistance,
-            collisionMask);
-
-        Vector2 velocity = movement; // adderar inputmovement till vektorn
         velocity += downMovement; // adderar gravitation till vektorn
         if (Input.GetKeyDown(KeyCode.Space) &&
-            grounded) // om spelaren klickar mellanslag och är tillräckligt nära marken (groundCheckDistance)
+            Grounded()) // om spelaren klickar mellanslag och är tillräckligt nära marken (groundCheckDistance)
         {
-            velocity += Vector2.up * 1.2f; // adderar potentiellt hopp till vektorn
+            velocity += Vector2.up * 0.2f; // adderar potentiellt hopp till vektorn
         }
 
-        CollisionFunction(velocity);
-        //CollisionFunction(velocity);
+        HandleInput(); // ser till att rasmus äter ägg
+        UpdateVelocity();
+        MovePlayer();
+    }
+
+
+    /**
+     * Hanterar användarens input i X-led.
+     * Accelererar ifall inputs magnitud är större än float.Epsilon, annars deaccelererar man
+     */
+    void HandleInput()
+    {
+        Vector2 input = Vector2.right * Input.GetAxisRaw("Horizontal");
+        if (input.magnitude > float.Epsilon)
+        {
+            Accelerate(input);
+        }
+        else
+        {
+            if (Grounded())
+            {
+                Decelerate();
+            }
+        }
+    }
+
+    /**
+     * Accelererar i den riktning spelaren har klickat i X-led
+     * Kommer att sätta en standardiserad hastighet ifall maxSpeed har nåtts.
+     */
+    void Accelerate(Vector2 input)
+    {
+        velocity += input * acceleration * Time.deltaTime;
+        if (velocity.magnitude > maxSpeed)
+        {
+            velocity = velocity.normalized * maxSpeed;
+        }
+    }
+
+    /**
+     * Deaccelererar i det fall man inte hittar någon input från spelaren i X-led
+     */
+    void Decelerate()
+    {
+        float deceleration = 0.04f;
+        Vector2 projection = new Vector2(velocity.x, 0.0f).normalized;
+
+        if (deceleration > Math.Abs(velocity.x))
+        {
+            velocity.x = 0;
+        }
+        else
+            velocity -= projection * deceleration * Time.deltaTime;
     }
 
     /**
@@ -61,64 +101,92 @@ public class Move : MonoBehaviour
      * @param movement innehåller totala påverkan av rörelseinputs
      * @returns en vector innehållandes resultatet på det som skickats in och hur spelarobjektet ska förflyttas
      */
-    Vector2 CollisionFunction(Vector2 movement)
+    void UpdateVelocity()
     {
         RaycastHit2D hit = Physics2D.BoxCast( // kikar efter en kollision
             transform.position,
             collider.size,
             0.0f,
-            movement.normalized,
-            movement.magnitude + colliderMargin,
+            velocity.normalized,
+            velocity.magnitude + colliderMargin,
             collisionMask);
         if (!hit)
         {
-            MovePlayer(movement);
-            return movement;
+            return;
         }
 
         do // kör så länge en kollision upptäcks 
         {
-            if (movement.magnitude < 0.00005f) // returnerar att movement är 0 om den nästan är 0
+            if (velocity.magnitude < 0.00005f) // returnerar att movement är 0 om den nästan är 0
             {
-                return Vector2.zero;
+                break;
             }
 
             hit = Physics2D.BoxCast(
                 transform.position,
                 collider.size,
                 0.0f,
-                movement.normalized,
-                movement.magnitude + colliderMargin,
+                velocity.normalized,
+                velocity.magnitude + colliderMargin,
                 collisionMask);
 
             RaycastHit2D normalHit = Physics2D.BoxCast(
                 transform.position,
                 collider.size,
                 0.0f,
-                hit.normal,
-                movement.magnitude,
+                -hit.normal,
+                velocity.magnitude + colliderMargin,
                 collisionMask);
 
-            // flyttar spelarobjektet baserat på normalHit från ytan
-            transform.position +=
-                -(Vector3) normalHit.normal *
-                (normalHit.distance - colliderMargin);
 
+            if (hit)
+            {
+                // flyttar spelarobjektet baserat på normalHit från ytan
+                Vector2 counterMovement = -(Vector3) normalHit.normal *
+                                          (normalHit.distance - colliderMargin);
 
-            // räknar ut normalkraften och lägger till den i movement.
-            movement += Normalforce.Calculatenf(movement,
-                hit.normal);
+                transform.position += (Vector3) counterMovement * Time.deltaTime;
 
-            // Ritar ut movement i unity
-            Debug.DrawRay(transform.position, movement, Color.green, 60);
+                //räknar ut normalkraften och lägger till den i movement.
+                Vector2 normalForce = (Normalforce.Calculatenf(velocity,
+                    hit.normal));
+                AddFriction(normalForce.magnitude);
+                velocity += normalForce;
+            }
         } while (hit);
-
-        MovePlayer(movement);
-        return movement;
     }
 
-    void MovePlayer(Vector2 movement)
+    void AddFriction(float normalForce)
     {
-        transform.position += (Vector3) movement;
+        print(velocity.magnitude);
+        if (velocity.magnitude <
+            normalForce * 0.4f)
+        {
+            velocity = Vector2.zero;
+        }
+        else
+        {
+            velocity -= velocity.normalized * normalForce *
+                        0.3f;
+        }
+    }
+
+    /**
+     * Returnerar ifall spelaren är groundCheckDistance från marken.
+     */
+    bool Grounded()
+    {
+        return Physics2D.BoxCast(
+            transform.position,
+            collider.size,
+            0.0f,
+            Vector2.down,
+            groundCheckDistance,
+            collisionMask);
+    }
+
+    void MovePlayer()
+    {
+        transform.position += (Vector3) velocity;
     }
 }
