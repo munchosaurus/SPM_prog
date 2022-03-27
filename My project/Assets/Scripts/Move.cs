@@ -18,6 +18,9 @@ public class Move : MonoBehaviour
     [SerializeField] private float gravity = 0.05f;
     private Vector2 velocity; // hastighet
     private float maxSpeed = 0.08f; // maxspeed
+    private float staticFrictionCoefficient = 0.4f;
+    private float kineticFrictionCoefficient = 0.3f;
+    private float airResistance = 0.7f;
 
     void Awake()
     {
@@ -42,6 +45,7 @@ public class Move : MonoBehaviour
 
         HandleInput(); // ser till att rasmus äter ägg
         UpdateVelocity();
+        AddAirResistance();
         MovePlayer();
     }
 
@@ -160,14 +164,14 @@ public class Move : MonoBehaviour
     {
         print(velocity.magnitude);
         if (velocity.magnitude <
-            normalForce * 0.4f)
+            normalForce * staticFrictionCoefficient)
         {
             velocity = Vector2.zero;
         }
         else
         {
             velocity -= velocity.normalized * normalForce *
-                        0.3f;
+                        kineticFrictionCoefficient;
         }
     }
 
@@ -188,5 +192,10 @@ public class Move : MonoBehaviour
     void MovePlayer()
     {
         transform.position += (Vector3) velocity;
+    }
+
+    void AddAirResistance()
+    {
+        velocity *= Mathf.Pow(airResistance, Time.deltaTime);
     }
 }
