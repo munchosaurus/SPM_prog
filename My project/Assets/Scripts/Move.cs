@@ -15,11 +15,11 @@ public class Move : MonoBehaviour
     private float colliderMargin = 0.05f; // hur långt det måste vara mellan spelaren och andra colliders
     private float groundCheckDistance = 0.1f; // hur långt ner man kollar ifall man är grounded
     [SerializeField] LayerMask collisionMask; // vilket layer spelaren ska kollidera med
-    [SerializeField] private float gravity = 0.05f;
+    [SerializeField] private float gravity = 0.1f;
     private Vector2 velocity; // hastighet
-    private float maxSpeed = 0.08f; // maxspeed
-    private float staticFrictionCoefficient = 0.4f;
-    private float kineticFrictionCoefficient = 0.3f;
+    private float maxSpeed = 0.04f; // maxspeed
+    private float staticFrictionCoefficient = 0.6f;
+    private float kineticFrictionCoefficient = 0.4f;
     private float airResistance = 0.7f;
 
     void Awake()
@@ -40,7 +40,7 @@ public class Move : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) &&
             Grounded()) // om spelaren klickar mellanslag och är tillräckligt nära marken (groundCheckDistance)
         {
-            velocity += Vector2.up * 0.2f; // adderar potentiellt hopp till vektorn
+            velocity += Vector2.up * 0.1f; // adderar potentiellt hopp till vektorn
         }
 
         HandleInput(); // ser till att rasmus äter ägg
@@ -149,7 +149,7 @@ public class Move : MonoBehaviour
                 Vector2 counterMovement = -(Vector3) normalHit.normal *
                                           (normalHit.distance - colliderMargin);
 
-                transform.position += (Vector3) counterMovement * Time.deltaTime;
+                velocity += counterMovement * Time.deltaTime;
 
                 //räknar ut normalkraften och lägger till den i movement.
                 Vector2 normalForce = (Normalforce.Calculatenf(velocity,
