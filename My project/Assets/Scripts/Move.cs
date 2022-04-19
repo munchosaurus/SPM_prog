@@ -35,12 +35,18 @@ public class Move : MonoBehaviour
     void Update()
     {
         Vector2 downMovement = (Vector3) Vector2.down * gravity * Time.deltaTime;
-
-        velocity += downMovement; // adderar gravitation till vektorn
-        if (Input.GetKeyDown(KeyCode.Space) &&
-            Grounded()) // om spelaren klickar mellanslag och är tillräckligt nära marken (groundCheckDistance)
+        
+        
+        if (Grounded()) // om spelaren klickar mellanslag och är tillräckligt nära marken (groundCheckDistance)
         {
-            velocity += Vector2.up * 0.1f; // adderar potentiellt hopp till vektorn
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                velocity += Vector2.up * 0.1f; // adderar potentiellt hopp till vektorn
+            }
+        }
+        else
+        {
+            velocity += downMovement; // adderar gravitation till vektorn
         }
 
         HandleInput(); // ser till att rasmus äter ägg
