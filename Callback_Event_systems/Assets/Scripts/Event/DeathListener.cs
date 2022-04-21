@@ -9,19 +9,32 @@ namespace Event
     {
         private void Start()
         {
-            EventSystem.Current.RegisterListener(typeof(UnitDeathEventInfo), OnUnitDied);
+            EventSystem.Current.RegisterListener<UnitDeathEventInfo> (OnUnitDied);
         }
 
-        // void OnUnitSpawned(Health health)
-        // {
-        //     Debug.Log("Spawnat");
-        //     health.OnDeathListeners += OnUnitDied;
-        // }
-
-        void OnUnitDied(EventInfo eventInfo)
+        void OnUnitDied(UnitDeathEventInfo unitDeathEventInfo)
         {
-            UnitDeathEventInfo unitDeathEventInfo = (UnitDeathEventInfo) eventInfo;
-            Debug.Log("UNIT WHO DIED: " + unitDeathEventInfo.EventUnitGO.name);
+            StartCoroutine(EnlargeAndDestroy(unitDeathEventInfo));
+        }
+        
+        IEnumerator EnlargeAndDestroy(UnitDeathEventInfo unitDeathEventInfo)
+        {
+            float timer = 0;
+            while (timer < unitDeathEventInfo.KillTimer) // this could also be a condition indicating "alive or dead"
+            {
+                timer += Time.deltaTime;
+                unitDeathEventInfo.EventUnitGo.transform.localScale += new Vector3(1, 1, 1) * Time.deltaTime * 1.01f;
+                yield return null;
+            }
+            EventInfo debugEventInfo = new DebugEventInfo
+            {
+                EventDescription = unitDeathEventInfo.EventDescription
+            };
+            
+            EventSystem.Current.FireEvent(debugEventInfo);
+            
+            Destroy(unitDeathEventInfo.EventUnitGo);
+            
         }
     }
 

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Event;
 using UnityEngine;
 //using Mirror;
 
@@ -12,15 +13,11 @@ public class PlayerScript3D : MonoBehaviour
     public float acceleration  = 10f;
     public Camera mainCamera;
     public bool firstPerson;
+    [SerializeField] private LayerMask layerMask;
     
     void Start()
     {
-        //Vi ser om det inte �r lokala spelaren, om det inte �r det s� f�rst�r vi kameran som sitter p�, optimering skulle ha en kamera i scenen som i sin tur anv�nds n�r spelaren laddas in
-        // if (!isLocalPlayer)
-        // {
-        //     Destroy(mainCamera.gameObject);
-        //     return;
-        // }
+
         myRigidbody = GetComponent<MyRigidbody3D>();
         if(states.Length > 0)    
             stateMachine = new StateMachine(this,states);
@@ -29,14 +26,22 @@ public class PlayerScript3D : MonoBehaviour
     }
 
     void Update()
-    { //Avbryter alla uppdateringar som inte �r den lokala spelaren
-        // if (!isLocalPlayer)
-        // {
-        //     return;
-        // }
-        //If there are any added states in the unity inspector
+    { 
+        
         if (states.Length > 0)      
             stateMachine.Update();
+        RaycastHit hit;
+        if(Physics.SphereCast(gameObject.transform.Find("Main Camera").transform.position,0.1f,gameObject.transform.Find("Main Camera").transform.forward,out hit,300,layerMask))
+        {
+            if(Input.GetMouseButtonDown(0))
+            {
+                hit.collider.GetComponent<Health>().Die();
+            }
+
+        }
+
+
+        
     }
     
     

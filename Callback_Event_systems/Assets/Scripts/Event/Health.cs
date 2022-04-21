@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,34 +7,19 @@ namespace Event
 {
     public class Health : MonoBehaviour
     {
-        public delegate void OnDeathCallbackDelegate(EventInfo eventInfo);
-        static public event OnDeathCallbackDelegate OnDeathListeners;
+        public float waitTime;
         
-       
-
-        public void RegisterEvent(OnDeathCallbackDelegate func)
+        public void Die()
         {
-            OnDeathListeners += func;
-        }
-        
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.K))
+            EventInfo unitDeathEventInfo = new UnitDeathEventInfo
             {
-                Die();
-            }
-        }
-
-        void Die()
-        {
-            UnitDeathEventInfo unitDeathEventInfo = new UnitDeathEventInfo
-            {
-                EventUnitGO = gameObject,
-                EventDescription = "Unit " + gameObject.name + " has died."
+                EventUnitGo = gameObject,
+                EventDescription = "Unit " + gameObject.name + " has died.",
+                KillTimer = waitTime
             };
+            
+            
             EventSystem.Current.FireEvent(unitDeathEventInfo);
-            Destroy(gameObject);
         }
     }
 }
-

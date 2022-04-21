@@ -8,43 +8,58 @@ namespace Event
 {
     public class EventSystem : MonoBehaviour
     {
-        public delegate void EventListener(EventInfo ei);
+        void OnEnable()
+        {
+            _current = this;
+        }
 
-        static private EventSystem __current;
-
-        static public EventSystem Current
+        public static EventSystem Current
         {
             get
             {
-                if (__current == null)
+                if (_current == null)
                 {
-                    __current = GameObject.FindObjectOfType<EventSystem>();
+                    _current = GameObject.FindObjectOfType<EventSystem>();
                 }
 
-                return __current;
+                return _current;
             }
         }
-
+        private static EventSystem _current;
+        delegate void EventListener(EventInfo eventInfo);
         private Dictionary<System.Type, List<EventListener>> eventListeners;
 
-        public void RegisterListener(System.Type eventType, EventListener listener)
+        public void RegisterListener<T>(System.Action<T> listener) where T : EventInfo
         {
+            System.Type eventType = typeof(T);
             if (eventListeners == null)
             {
                 eventListeners = new Dictionary<System.Type, List<EventListener>>();
             }
 
-            if (eventListeners[eventType] == null || eventListeners.ContainsKey(eventType) == false)
+            if ( eventListeners.ContainsKey(eventType) == false ||  eventListeners[eventType] == null)
             {
                 eventListeners[eventType] = new List<EventListener>();
             }
 
-            eventListeners[eventType].Add(listener);
+            EventListener wrapper = (eventInfo) => { listener((T) eventInfo); };
+            
+            eventListeners[eventType].Add(wrapper);
         }
 
-        public void UnregisterListener(System.Type eventType, EventListener listener)
+        public void UnregisterListener<T>(System.Action<T> listener) where T : EventInfo
         {
-            // to do
+            System.Type eventType = typeof(T);
+
+            if ( eventListeners.ContainsKey(eventType) == false ||  eventListeners[eventType] == null)
+            {
+                return;
+            }
+
+            EventListener wrapper = (eventInfo) => { listener((T) eventInfo); };
+            
+            eventListeners[eventType].Remove(wrapper);
+            
         }
 
         public void FireEvent(EventInfo eventInfo)
@@ -55,9 +70,9 @@ namespace Event
                 return;
             }
 
-            foreach (EventListener el in eventListeners[trueEventInfoClass])
+            foreach (EventListener eventListener in eventListeners[trueEventInfoClass])
             {
-                el(eventInfo);
+                eventListener(eventInfo);
             }
         }
     }
