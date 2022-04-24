@@ -6,7 +6,7 @@ namespace Event
     {
         private void Start()
         {
-            EventSystem.Current.RegisterListener<DebugEventInfo>(OnUnitDied);
+            EventSystem.Current.RegisterListener<DebugEventInfo>(OnUnitDied, gameObject.GetInstanceID());
             
         }
         

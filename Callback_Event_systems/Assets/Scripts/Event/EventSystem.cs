@@ -1,8 +1,10 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.Tracing;
+using System.Diagnostics;
+using System.Reflection;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
+
 
 namespace Event
 {
@@ -25,41 +27,48 @@ namespace Event
                 return _current;
             }
         }
-        private static EventSystem _current;
-        delegate void EventListener(EventInfo eventInfo);
-        private Dictionary<System.Type, List<EventListener>> eventListeners;
 
-        public void RegisterListener<T>(System.Action<T> listener) where T : EventInfo
+        private static EventSystem _current;
+
+        delegate void EventListener(EventInfo eventInfo);
+
+        private Dictionary<System.Type, Dictionary<int, EventListener>> eventListeners;
+
+        public void RegisterListener<T>(System.Action<T> listener, int instanceID) where T : EventInfo
         {
             System.Type eventType = typeof(T);
             if (eventListeners == null)
             {
-                eventListeners = new Dictionary<System.Type, List<EventListener>>();
+                eventListeners = new Dictionary<System.Type, Dictionary<int, EventListener>>();
             }
 
-            if ( eventListeners.ContainsKey(eventType) == false ||  eventListeners[eventType] == null)
+            if (eventListeners.ContainsKey(eventType) == false || eventListeners[eventType] == null)
             {
-                eventListeners[eventType] = new List<EventListener>();
+                eventListeners[eventType] = new Dictionary<int, EventListener>();
             }
 
             EventListener wrapper = (eventInfo) => { listener((T) eventInfo); };
-            
-            eventListeners[eventType].Add(wrapper);
+            eventListeners[eventType].Add(instanceID, wrapper);
         }
 
-        public void UnregisterListener<T>(System.Action<T> listener) where T : EventInfo
+        public void UnregisterListener<T>(System.Action<T> listener, int instanceID) where T : EventInfo
         {
             System.Type eventType = typeof(T);
 
-            if ( eventListeners.ContainsKey(eventType) == false ||  eventListeners[eventType] == null)
+            // Comparison if there isn't any key of the passed on type
+            if (eventListeners.ContainsKey(eventType) == false || eventListeners[eventType] == null)
             {
                 return;
             }
-
-            EventListener wrapper = (eventInfo) => { listener((T) eventInfo); };
             
-            eventListeners[eventType].Remove(wrapper);
+            // Removes the listener using the instance id of the object as key
+            eventListeners[eventType].Remove(instanceID);
             
+            // removes the type from the dictionary if there aren't any listeners for the specific event type
+            if (eventListeners[eventType].Count < 1)
+            {
+                eventListeners.Remove(eventType);
+            }
         }
 
         public void FireEvent(EventInfo eventInfo)
@@ -70,9 +79,9 @@ namespace Event
                 return;
             }
 
-            foreach (EventListener eventListener in eventListeners[trueEventInfoClass])
+            foreach (var eventListener in eventListeners[trueEventInfoClass])
             {
-                eventListener(eventInfo);
+                eventListener.Value(eventInfo);
             }
         }
     }

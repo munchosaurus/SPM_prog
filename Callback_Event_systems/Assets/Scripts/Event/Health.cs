@@ -8,9 +8,13 @@ namespace Event
     public class Health : MonoBehaviour
     {
         public float waitTime;
+        private bool hasDied;
         
         public void Die()
         {
+            if (hasDied)
+                return;
+            hasDied = true;
             EventInfo unitDeathEventInfo = new UnitDeathEventInfo
             {
                 EventUnitGo = gameObject,

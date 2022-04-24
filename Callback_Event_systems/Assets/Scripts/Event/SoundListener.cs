@@ -9,7 +9,7 @@ namespace Event
         
         private void Start()
         {
-            EventSystem.Current.RegisterListener<UnitDeathEventInfo>(OnUnitDied);
+            EventSystem.Current.RegisterListener<UnitDeathEventInfo>(OnUnitDied, gameObject.GetInstanceID());
             
         }
         

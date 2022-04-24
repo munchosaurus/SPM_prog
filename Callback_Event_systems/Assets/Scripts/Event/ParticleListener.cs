@@ -7,7 +7,16 @@ namespace Event
     {
         private void Start()
         {
-            EventSystem.Current.RegisterListener<UnitDeathEventInfo>(OnUnitDied);
+            EventSystem.Current.RegisterListener<UnitDeathEventInfo>(OnUnitDied, gameObject.GetInstanceID());
+        }
+        
+        private void Update()
+        {
+            // testing remove
+            if (Input.GetKeyDown(KeyCode.V))
+            {
+                EventSystem.Current.UnregisterListener<UnitDeathEventInfo>(OnUnitDied, gameObject.GetInstanceID());
+            }
         }
         
         
